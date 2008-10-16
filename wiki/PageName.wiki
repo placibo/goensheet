@@ -22,5 +22,5 @@ GoenSheet is A Simple Spreadsheet, this is very simple spreadsheet. Using JTable
   * Create Database Connection to Import data from database 
   * ehmm what next?
 
-= Official Web Site
-Check in [http://javageo.com javageo]
+= Official Web Site =
+Look at [http://javageo.com javageo]
