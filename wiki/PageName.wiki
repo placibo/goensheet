@@ -7,11 +7,20 @@ GoenSheet is A Simple Spreadsheet, this is very simple spreadsheet. Using JTable
 
 
 = Details =
+  *  Create,save,load and print spreatsheet file.
+  *  Cut,Copy and Paste from selection cell to cell. 
+  *  Delete and Insert Row
+  *  Export to CSV Formated file
+  *  Create Chart for your data
+  *  Change font name,font size, background or foreground color 
+  *  Configure your setup and save it
+  *  Easy to use,learn and very small 
 
-Nice to have
+= Nice to have = 
   * Create many type of chart using JFreeChart
   * Create report using JFreeReport or JasperReport
   * Create Database Connection to Import data from database 
   * ehmm what next?
 
-Check the Website [http://javageo.com javageo]
+= Official Web Site
+Check in [http://javageo.com javageo]
