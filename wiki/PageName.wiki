@@ -22,5 +22,8 @@ GoenSheet is A Simple Spreadsheet, this is very simple spreadsheet. Using JTable
   * Create Database Connection to Import data from database 
   * ehmm what next?
 
+= Bugs Fixed = 
+  * Update 15/10/08 - Create XY and Bar Chart by using JFreeChart
+
 = Official Web Site =
 Look at [http://javageo.com javageo]
