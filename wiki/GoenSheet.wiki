@@ -7,7 +7,12 @@ GoenSheet is A Simple Spreadsheet developed in Java and uses Swing for it's UI, 
 GoenSheet also uses a of a number of free software libraries, including: 
   *  [http://www.jfree.org/jfreechart/ JFreeChart]
   *  [http://nsis.sourceforge.net/ NSIS Installer]
-  
+
+= Requirements =
+
+To build GoenSheet, the following programs are needed:
+    * [http://java.sun.com/javase/ Java SE Development Kit version 5 or greater ]
+
 = Release Notes =
   *  Create,save,load and print spreatsheet file.
   *  Cut,Copy and Paste from selection cell to cell. 
