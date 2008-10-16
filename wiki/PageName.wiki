@@ -10,7 +10,6 @@ GoenSheet is A Simple Spreadsheet, this is very simple spreadsheet. Using JTable
 
 Nice to have
   * Create many type of chart using JFreeChart
-  * Create report using JFreeChart or JasperReport
+  * Create report using JFreeReport or JasperReport
   * Create Database Connection to Import data from database 
   * ehmm what next?
-
