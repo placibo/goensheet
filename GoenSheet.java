@@ -9,10 +9,10 @@
  *                                                                           *
  *@                                                                         **
  *@                                                                         **
- *@ JAVA       GoenSheet 1.0                                                **
+ *@ JAVA       GoenSheet 1.0.1                                                **
  *@ Version#1.0 release 1                                                   **
  *@ By Javageo.com - Goen-Ghin                                              **
- *@ Date:  17-07-2008                                                       **
+ *@ Date:  15-10-2008                                                       **
  *@ Pekanbaru Riau- Indonesia                                               **
  *****************************************************************************
  */
@@ -37,6 +37,36 @@ import javax.swing.undo.*;
 import java.awt.datatransfer.*;
 import javax.swing.table.*;
 
+import org.jfree.data.xy.XYDataset;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.entity.ChartEntity;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.chart.annotations.XYLineAnnotation;
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.chart.renderer.xy.XYItemRenderer;
+import org.jfree.chart.labels.StandardXYItemLabelGenerator;
+import org.jfree.chart.annotations.XYImageAnnotation; 
+import org.jfree.chart.ChartRenderingInfo; 
+import org.jfree.chart.block.GridArrangement;
+import org.jfree.chart.axis.AxisLocation;
+import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.labels.StandardXYToolTipGenerator;
+
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.data.category.CategoryDataset;
+import org.jfree.chart.ChartUtilities; 
+import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
+import org.jfree.chart.renderer.category.CategoryItemRenderer ;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.chart.plot.CategoryPlot;
+
 
 public class GoenSheet extends JFrame implements ActionListener
 {
@@ -51,7 +81,7 @@ public class GoenSheet extends JFrame implements ActionListener
 	public static final ImageIcon ICON_COMPUTER =new ImageIcon(ClassLoader.getSystemResource("folder.png"));
  	public static final ImageIcon ICON_FILES = new ImageIcon(ClassLoader.getSystemResource("kword.png"));
   	protected DefaultTreeModel myTreeModel;
-	private JSplitPane  splitMe;
+	private JSplitPane  splitMe,splitMe2;
 	private DefaultMutableTreeNode top;
 	private File sourceDir,openRunwith;
 	private JTree tree, myTree;
@@ -88,8 +118,9 @@ public class GoenSheet extends JFrame implements ActionListener
 	private String setoutdir;
      
     public JPopupMenu popup;
+    public JMenu chartPop;
     public JMenuItem menuPop,cutPop,clearPop, copyPop,pastePop, selectallPop, insertPop,deletePop, rowheightPop,
-    selectrowPop,selectcolPop,selectcellPop;
+    selectrowPop,selectcolPop,selectcellPop, xychartPop,barchartPop;
     private JTable myTable;
     private SheetAdapter sheetCell;
     private JTable lineTable;
@@ -98,6 +129,23 @@ public class GoenSheet extends JFrame implements ActionListener
 	
 	private JPanel southPanel;
 	private JLabel cellInfo;
+    //Chart
+    	private XYSeries series1;
+    	private XYSeries seriescluster;
+    	
+	private XYSeriesCollection dataset;
+	    private DefaultCategoryDataset bardataset;
+	private XYDataset xydataset;
+	private XYItemRenderer xyrenderer;
+	private StandardXYItemLabelGenerator labelItem ;
+	private JFreeChart chart;
+	private ChartPanel chartPanel;
+	
+	private XYLineAndShapeRenderer renderer;	
+	private XYPlot plot;
+    private NumberAxis xAxis ,yAxis;
+    
+    private boolean xychartselect=false;
 
  	public GoenSheet()
 	{  
@@ -133,8 +181,8 @@ public class GoenSheet extends JFrame implements ActionListener
         
 
 	statusBar = new JLabel(" ");
-    cellInfo = new JLabel("Row: | Col:");
-    
+    cellInfo = new JLabel("Row: | Col:", SwingConstants.RIGHT);
+
     southPanel = new JPanel();
     southPanel.setLayout(new GridLayout(1,2,7,7));
     southPanel.add(statusBar);
@@ -143,7 +191,7 @@ public class GoenSheet extends JFrame implements ActionListener
 	
 	rows=new Vector();
 	columns= new Vector();
-	String[] columnNames = { "A","B","C","D","E","F","G","H","I","J","K","L"};
+	String[] columnNames = { "A","B","C","D","E","F","G","H","I","J"};
 	addColumns(columnNames);
 	
 	tabModel=new DefaultTableModel();
@@ -151,6 +199,8 @@ public class GoenSheet extends JFrame implements ActionListener
 	tabModel.setDataVector(rows,columns);
 
       	myTable = new JTable(tabModel);
+      	
+
 		lineTable = new RowLineNumberTable( myTable );
 		sheetCell = new SheetAdapter(myTable);
 		
@@ -169,8 +219,8 @@ public class GoenSheet extends JFrame implements ActionListener
 	 //	myTable.setShowVerticalLines(true) ;
      //myTable.setShowGrid(boolean showGrid) 
      //  myTable.setGridColor(Color gridColor) 
-          
-		ps = new JScrollPane(myTable);
+     
+ 		ps = new JScrollPane(myTable);
  		ps.setRowHeaderView( lineTable );
 
 
@@ -196,6 +246,15 @@ public class GoenSheet extends JFrame implements ActionListener
 		 popup.add(selectrowPop = new JMenuItem("Select Row"));
 		 popup.add(selectcolPop = new JMenuItem("Select Column"));
 		 popup.add(selectcellPop = new JMenuItem("Select Cell"));
+		 
+		 popup.add(chartPop = new JMenu("Chart"));
+		 chartPop.add(xychartPop = new JMenuItem("XY Chart"));
+		 chartPop.add(barchartPop = new JMenuItem("Bar Chart"));
+		 
+		 xychartPop.addActionListener(new MyMenuListener());
+		 barchartPop.addActionListener(new MyMenuListener());
+		 
+		 
 		 selectrowPop.addActionListener(new MyMenuListener());
 		 selectcolPop.addActionListener(new MyMenuListener());
 		 selectcellPop.addActionListener(new MyMenuListener());
@@ -367,9 +426,28 @@ public class GoenSheet extends JFrame implements ActionListener
     splitMe.setOneTouchExpandable(true) ;
     splitMe.setResizeWeight(0.2) ;
     splitMe.setDividerSize(17) ;
+    
+     xydataset = createDataset();
+	
+ 	
+    chart = createChart(xydataset,"XY Line Chart");
+    chartPanel = new ChartPanel(chart);
+    chartPanel.setPreferredSize(new java.awt.Dimension(50, 270));
+    chartPanel.setVisible(false);
+    
+    splitMe2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, splitMe, chartPanel);
+    splitMe2.setMinimumSize(new Dimension(80, 170));
+    splitMe2.setOneTouchExpandable(true) ;
+    splitMe2.setResizeWeight(0.2) ;
+    splitMe2.setDividerSize(17) ;
 
     //Put SplitPane in Center
-    getContentPane().add(splitMe, BorderLayout.CENTER);
+    getContentPane().add(splitMe2, BorderLayout.CENTER);
+    
+   
+    
+	//getContentPane().add(chartPanel, BorderLayout.EAST);
+
 
     //This is simple menubar..you can make another advance menubar
     JMenuBar menuBar = createMenuBar();
@@ -794,6 +872,7 @@ public class GoenSheet extends JFrame implements ActionListener
 		return myPanel;
 	}
 
+
 protected void addNewFile(String filename)
 {
 	//add  
@@ -851,7 +930,24 @@ public void fontSetOpen(String configFile)
 		 fontbgcanvas.setBackground(new Color(ReadfnConf.getFontBgColor()));
   				
 		}
-		
+
+public void runChartDialog()
+{
+	try {
+					chartDataDialog cDataDialog = new chartDataDialog(GoenSheet.this);
+				    Dimension d1 = cDataDialog.getSize();
+				    Dimension d2 = GoenSheet.this.getSize();
+				    int xv = Math.max((d2.width-d1.width)/2, 0);
+				    int yv = Math.max((d2.height-d1.height)/2, 0);
+				    cDataDialog.setBounds(xv + GoenSheet.this.getX(),
+				      yv + GoenSheet.this.getY(), d1.width+90, d1.height-50);								    
+				    cDataDialog.setVisible(true);														
+					}
+					catch (Exception e) {
+					System.out.println("Error due to " + e.getClass() + e.getMessage());
+						
+						}  
+	}		
 public void addColumns(String[] colName)//Table Columns
 	{
 	for(int i=0;i<colName.length;i++)
@@ -887,9 +983,7 @@ public Vector createBlankElement()
 	t.addElement((String) " ");
 	t.addElement((String) " ");
 	t.addElement((String) " ");
-	t.addElement((String) " ");
-	t.addElement((String) " ");
-	
+ 	
 	return t;
 	}
 void deleteRow(int index) 
@@ -1039,6 +1133,176 @@ protected void removeTable()
 					}
 					
 	}
+	public void readBarPoint( ) 
+  	{
+  		try
+  		{ 
+   		
+  		 //For Data X Y get from Table
+       int xcolcell = myTable.getSelectedColumn() ;
+       int ycolcell = myTable.getSelectedColumn() + 1;
+       
+       
+       int sizeCol = myTable.getRowCount()  ;
+       System.out.println("CX="+xcolcell+" CY="+ycolcell+"S="+sizeCol);
+
+          try
+          {
+                  for(int j=0;j<sizeCol;j++)
+                {
+                      double x = (double)Double.valueOf(myTable.getValueAt(j, xcolcell).toString()) ;
+                      String y = String.valueOf(myTable.getValueAt(j, ycolcell).toString()); 
+                      String z = String.valueOf(myTable.getValueAt(j, ycolcell+1).toString()); 
+                      String headname = myTable.getColumnName(xcolcell);
+                      bardataset.addValue(x, y , z);
+
+                    // System.out.println("X="+x+"Y="+y+"Size="+sizeCol);
+                }
+         }
+         catch(Exception ex){
+         //ex.printStackTrace()
+         warnme("Please Check Your X Y Column Data");
+         ;}
+                   
+        
+        dataset = new XYSeriesCollection();
+	    dataset.addSeries(series1);	
+        
+        System.out.println("data"); 
+        
+ 		  }catch (Exception ex) {}			 
+  		}
+	
+	public void readPoint( ) 
+  	{
+  		try
+  		{ 
+   		
+  		 //For Data X Y get from Table
+       int xcolcell = myTable.getSelectedColumn() ;
+       int ycolcell = myTable.getSelectedColumn() + 1;
+       
+       
+       int sizeCol = myTable.getSelectedRowCount()  ;
+       System.out.println("CX="+xcolcell+" CY="+ycolcell+"S="+sizeCol);
+
+          try
+          {
+                  for(int j=0;j<sizeCol;j++)
+                {
+                      double x = (double)Double.valueOf(myTable.getValueAt(j, xcolcell).toString()) ;
+                      double y = (double)Double.valueOf(myTable.getValueAt(j, ycolcell).toString()); 
+                   
+                         series1.add(x,y);
+                     System.out.println("X="+x+"Y="+y+"Size="+sizeCol);
+                }
+         }
+         catch(Exception ex){
+         //ex.printStackTrace()
+         warnme("Please Check Your X Y Column Data");
+         ;}
+                   
+        
+        dataset = new XYSeriesCollection();
+	    dataset.addSeries(series1);	
+        
+        System.out.println("data"); 
+        
+ 		  }catch (Exception ex) {}			 
+  		}
+  		
+  		 private DefaultCategoryDataset createBarDataset() {
+        
+         bardataset = new DefaultCategoryDataset();
+               
+        return bardataset;
+        
+    }
+    
+	private XYDataset createDataset() {
+        
+        series1 = new XYSeries(" ");
+        dataset = new XYSeriesCollection();
+        dataset.addSeries(series1);
+                 
+        return dataset;
+        
+    }
+	
+	private JFreeChart createChart(final XYDataset dataset, String chartTitle) {
+        
+        // create the chart...
+        final JFreeChart chart = ChartFactory.createXYLineChart(
+            chartTitle,      // chart title
+            "X",                      // x axis label
+            "Y",                      // y axis label
+            dataset,                  // data
+            PlotOrientation.VERTICAL,
+            true,                     // include legend
+            true,                     // tooltips
+            false                     // urls
+        );
+
+        chart.setBorderVisible(true);
+         chart.setBackgroundPaint(new GradientPaint(0, 0, Color.white, 0, 1000, Color.blue));
+         
+        // get a reference to the plot for further customisation...
+         
+        plot = (XYPlot) chart.getPlot();
+        renderer = new XYLineAndShapeRenderer();
+        renderer.setSeriesLinesVisible(0, true);
+        renderer.setSeriesShapesVisible(0, false);
+        renderer.setSeriesLinesVisible(1, false);
+        renderer.setSeriesShapesVisible(1, true);
+        renderer.setBaseToolTipGenerator(new StandardXYToolTipGenerator());
+        renderer.setDefaultEntityRadius(6);
+        plot.setRenderer(renderer);
+  
+         plot.setRenderer(renderer);
+                    
+        return chart;
+        
+    }
+    
+    private JFreeChart createBarChart(final DefaultCategoryDataset bardataset,String chartTitle) {
+        
+        // create the chart... ChartFactory.createBarChart if you dont like 3D
+        final JFreeChart chart = ChartFactory.createStackedBarChart3D(chartTitle,       // chart title
+            "X ",               // domain axis label
+            "Y",                  // range axis label
+            bardataset,                  // data
+            PlotOrientation. VERTICAL, // orientation
+            true,                     // include legend
+            true,                     // tooltips?
+            false                     // URLs?
+        );
+        
+        CategoryPlot plot = (CategoryPlot) chart.getPlot();
+      plot.getRenderer().setSeriesPaint(0, Color.gray);
+      plot.getRenderer().setSeriesPaint(1, Color.lightGray);
+      plot.getRenderer().setSeriesPaint(2, Color.darkGray);
+      plot.setBackgroundPaint(new GradientPaint(0, 0, Color.white, 0, 1000, Color.yellow));
+
+      plot.getRenderer().setOutlinePaint(Color.WHITE);
+             CategoryItemRenderer renderer = plot.getRenderer();
+            renderer.setItemLabelsVisible(true);
+            renderer.setItemLabelGenerator(new StandardCategoryItemLabelGenerator());
+            renderer.setBaseItemLabelsVisible(true);
+            BarRenderer r = (BarRenderer) renderer;
+            //r.setMaximumBarWidth(0.05);
+            r.setItemMargin(0.2);
+    
+ 
+        // set the range axis to display integers only...
+        final NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis( );
+        rangeAxis.setStandardTickUnits( NumberAxis. createIntegerTickUnits()) ;
+        rangeAxis.setLowerMargin(0);
+        rangeAxis.setUpperMargin(0);
+            
+        return chart;
+        
+    }
+     
 
  		public static void main(String argv[]) 
 	{
@@ -1228,7 +1492,7 @@ class MyTextToolbar extends JToolBar {
 	}
 }
 //toolbar
-
+ 
 //menu popup
 class MyMenuListener implements ActionListener {  
 		public void actionPerformed(ActionEvent e) {
@@ -1257,10 +1521,14 @@ class MyMenuListener implements ActionListener {
 				{
  					 for(int i=0; i< myTable.getSelectedRowCount();i++)
 					 deleteRow(myTable.getSelectedRow());        
+					 //I leave for you to delete a column
+  					 
 			    }
 				if (e.getActionCommand() == "Select All") 
 				{   
 					myTable.selectAll();
+					
+					
   				}
   				if (e.getActionCommand() == "Select Row") 
 				{   
@@ -1276,8 +1544,51 @@ class MyMenuListener implements ActionListener {
 				{   
  				  
                   myTable.setCellSelectionEnabled(true);
+ 
+   				}
+   				if (e.getActionCommand() == "XY Chart") 
+				{   
+ 				  //Make Sure we set to remove from splitme2
+ 				    if(xychartselect == true)
+                   {
+                   	
+                   	splitMe2.remove(chartPanel);
+                   	chart = createChart(xydataset,"XY Line Chart");
+                    chartPanel = new ChartPanel(chart);
+                    splitMe2.add(chartPanel);
+                    splitMe2.validate();
+                   	xychartselect = false;
+                   	}
+                   	
+                     //runChartDialog();
+                   	int x=series1.getItemCount()-1;
+                    series1.delete(0,x);
+                    //myTable.sizeColumnsToFit(100) ;
+                   readPoint( );
+                   chartPanel.setVisible(true);
+                   splitMe2.resetToPreferredSizes() ;
+                   getContentPane().validate();
+                   //
+ 
+   				}
+   				
+   				if (e.getActionCommand() == "Bar Chart") 
+				{   
+ 				  
+                   xychartselect = true;
+                     
+                    createBarDataset();
+					readBarPoint( );
+					splitMe2.remove(chartPanel);
+					chart = createBarChart(bardataset,"Bar Chart");
+                    chartPanel = new ChartPanel(chart);
+                    splitMe2.add(chartPanel);
+                    splitMe2.validate();
+                   //
 
    				}
+   				
+ 		 
   				if (e.getActionCommand() == "Row Height") 
 				{
 					String rowHeight=JOptionPane.showInputDialog(null,"Enter Row Height ","GoenSheet",JOptionPane.INFORMATION_MESSAGE);
@@ -1290,6 +1601,98 @@ class MyMenuListener implements ActionListener {
   				}
    			}
 		}
+
+//extract
+class chartDataDialog extends JDialog 
+{
+  protected GoenSheet fd_owner;
+  
+  public chartDataDialog(GoenSheet owner) 
+  {
+    super(owner, "Create Chart", false);
+    fd_owner = owner;
+  
+    setSize(250,240);
+  
+    JPanel content = new JPanel();
+    content.setLayout(new BorderLayout());
+  
+    
+    JPanel content1 = new JPanel();
+    content1.setLayout(new BoxLayout(content1, BoxLayout.Y_AXIS));
+    JLabel label1 = new JLabel("X Data:");
+    label1.setForeground(Color.black);
+    content1.add(label1);
+
+    final JTextField filenameField = new JTextField(15);
+    filenameField.setText("");
+   
+    content1.add(filenameField);
+
+    JLabel label2 = new JLabel("Y Data:");
+    label2.setForeground(Color.black);
+    content1.add(label2);
+
+    final JTextField fieldtoDir = new JTextField(15);
+    
+    fieldtoDir.setText("");
+    
+    content1.add(fieldtoDir);
+      
+    content.add("North",content1);
+    
+    JButton Brosdocdirbutton = new JButton(("Create XY Data"));
+	    
+	content.add(Brosdocdirbutton);
+    
+ 		ActionListener JarButtonAction = new ActionListener() { 
+         public void actionPerformed(ActionEvent e) {
+          
+              
+          }
+        };
+        
+        
+        
+        ActionListener BrowButtonAction = new ActionListener() { 
+         public void actionPerformed(ActionEvent e) {
+          
+           
+          }
+        };
+        
+         Brosdocdirbutton.addActionListener(BrowButtonAction);
+        
+ 		    JButton JarButton= new JButton("Extract File ");
+		    JarButton.addActionListener(JarButtonAction);
+		    		    
+                   
+       ActionListener CloseButtonAction = new ActionListener() { 
+         public void actionPerformed(ActionEvent e) {
+          dispose();
+          }
+        };
+        
+        JButton CancelButton = new JButton("Close");
+		    CancelButton.addActionListener(CloseButtonAction);
+		  
+	 JPanel content2 = new JPanel();
+	 content2.setLayout(new FlowLayout());
+     content2.add(JarButton);         
+     content2.add(CancelButton);
+            
+     content.add("South",content2);     
+ 
+    getContentPane().setLayout(new FlowLayout());
+    getContentPane().add(content);
+    ((JPanel)getContentPane()).setOpaque(true);
+
+    setVisible(true);
+  }
+  
+  
+}
+//end dialog xtreact
 //icon
 class IconCellRenderer 	extends JLabel implements TreeCellRenderer
 {
@@ -1552,7 +1955,7 @@ public class RowLineNumberTable extends JTable
 		}
  
 }
-//Adapter
+//Excel
 class SheetAdapter implements ActionListener
    {
    private String rowstring,value;
@@ -1663,7 +2066,7 @@ public void actionPerformed(ActionEvent e)
    }
 }	
 
-//Export to csv file so Excell/Others can read it
+//Export to csv file so Excel/Other program can read it
 class  ExportertoFile {
  public ExportertoFile() {}
  public void exportTable(JTable table, File file) throws IOException {
