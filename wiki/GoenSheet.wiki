@@ -1,0 +1,45 @@
+#summary One-sentence summary of this page.
+#labels Phase-Requirements
+
+= Introduction =
+
+GoenSheet is A Simple Spreadsheet developed in Java and uses Swing for it's UI, this is very simple spreadsheet. Using JTable component to create a simple spreadsheet. Easy to load,save,print data and create Chart.
+GoenSheet also uses a of a number of free software libraries, including: 
+  *  [http://www.jfree.org/jfreechart/ JFreeChart]
+  *  [http://nsis.sourceforge.net/ NSIS Installer]
+  
+= Release Notes =
+  *  Create,save,load and print spreatsheet file.
+  *  Cut,Copy and Paste from selection cell to cell. 
+  *  Delete and Insert Row
+  *  Export to CSV Formated file
+  *  Create Chart for your data
+  *  Change font name,font size, background or foreground color 
+  *  Configure your setup and save it
+  *  Easy to use,learn and very small 
+
+= Tutorials & User Guide = 
+Guide to use [http://javageo.com/ebook/GoenSheetChart.pdf GoenSheet Ebook]
+
+= Getting the Source Code =
+
+Source code for GoenSheet releases can be obtained from the downloads page. The latest source code can be obtained from the trunk of GoenSheet's SVN [http://code.google.com/p/goensheet/source/checkout repository]. 
+
+= Compile and Build JAR's =
+Compile GoenSheet.java and make a jar of the class files, run:
+
+    > CreateJar 
+Making Installer just run
+    > goensheet.nsis
+
+= Nice to have = 
+  * Create many type of chart using JFreeChart
+  * Create report using JFreeReport or JasperReport
+  * Create Database Connection to Import data from database 
+  * ehmm what next?
+
+= Bugs Fixed = 
+  * Update 15/10/08 - Create XY and Bar Chart by using JFreeChart
+
+= Official Web Site =
+Look at [http://javageo.com javageo]
