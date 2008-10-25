@@ -6,6 +6,7 @@
 GoenSheet is A Simple Spreadsheet developed in Java and uses Swing for it's UI, this is very simple spreadsheet. Using JTable component to create a simple spreadsheet. Easy to load,save,print data and create Chart.
 GoenSheet also uses a of a number of free software libraries, including: 
   *  [http://www.jfree.org/jfreechart/ JFreeChart]
+  *  [http://www.jfree.org/jfreereport/ JFreeReport]
   *  [http://nsis.sourceforge.net/ NSIS Installer]
 
 = Requirements =
@@ -19,6 +20,7 @@ To build GoenSheet, the following programs are needed:
   *  Delete and Insert Row
   *  Export to CSV Formated file
   *  Create Chart for your data
+  *  Create Report for PrintPreview your data
   *  Change font name,font size, background or foreground color 
   *  Configure your setup and save it
   *  Easy to use,learn and very small 
@@ -39,7 +41,6 @@ Making Installer just run
 
 = Nice to have = 
   * Create many type of chart using JFreeChart
-  * Create report using JFreeReport or JasperReport
   * Create Database Connection to Import data from database 
   * ehmm what next?
 
