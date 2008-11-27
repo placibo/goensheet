@@ -52,8 +52,17 @@ Section "GoenSheet (required)"
   File "LICENSE.txt"
   File "logo.ico"
   File "fontsetting.conf" 
+  File "GoenDB.properties" 
+  File "test.properties" 
+  File "test.script" 
+  File "test.log" 
   File "example.xlg" 
- 
+  File "goensheet.xml" 
+  
+  CreateDirectory "lib" 
+   SetOutPath $INSTDIR\lib
+   File "lib\*.*"
+   
   SetOutPath $INSTDIR
 
   
@@ -93,6 +102,7 @@ Section "Uninstall"
 
   ; Remove files and uninstaller
   Delete "$INSTDIR\*.*"
+  Delete "$INSTDIR\lib\*.*"
   
   ; Remove shortcuts, if any
   Delete "$SMPROGRAMS\GoenSheet\*.*"

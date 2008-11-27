@@ -4,12 +4,12 @@ GoenSheet 1.0
 Welcome to GoenSheet 1.0  - A Simple SpreadSheet 
 
             * Simple SpreadSheet / Excell Like with JTable  
-            * Create,Edit,Save,Open File SpreadSheet  
+            * Create,Edit,Save,Open File SpreadSheet,Insert data From Database  
             * Change and Setup Cell Font and Color  
             * Change Cell Font Color  
             * Delete, Select, Insert, Copy, Paste and Clear Rows / Column /Cell 
             * Print File 
-            * Export to Excell File 
+            * Export to Excell,PDF, and more 
             * Easy to use, learn and very small  
             * 100% pure java 
 
@@ -34,6 +34,7 @@ Set PATH:
 if you are not familiar with modifying the PATH or
 CLASSPATH variables, should read the documentation
 in java sun home page
+
 
 NOTE:  If you might run into errors, it is recommended
 that you send email to me at goen.ghin@gmail.com
