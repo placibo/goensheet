@@ -1,5 +1,4 @@
 Manifest-Version: 1.0
-Created-By: 1.5.0_06 (Sun Microsystems Inc.)
+Created-By: 1.6.0_03 (Sun Microsystems Inc.)
 Main-Class: GoenSheet
-Class-Path: 
-
+Class-Path: lib\jfreechart-1.0.11.jar lib\jcommon-1.0.14.jar lib\jfreereport-0.8.7.jar lib\jcommon-xml-1.0.1.jar lib\hsqldb.jar

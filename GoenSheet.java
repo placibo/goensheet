@@ -9,10 +9,10 @@
  *                                                                           *
  *@                                                                         **
  *@                                                                         **
- *@ JAVA       GoenSheet 1.0.1                                                **
+ *@ JAVA       GoenSheet 1.0                                                **
  *@ Version#1.0 release 1                                                   **
  *@ By Javageo.com - Goen-Ghin                                              **
- *@ Date:  15-10-2008                                                       **
+ *@ Date:  07-11-2008                                                       **
  *@ Pekanbaru Riau- Indonesia                                               **
  *****************************************************************************
  */
@@ -36,6 +36,8 @@ import javax.swing.text.rtf.*;
 import javax.swing.undo.*;
 import java.awt.datatransfer.*;
 import javax.swing.table.*;
+import java.awt.geom.Point2D;
+import java.net.URL;
 
 import org.jfree.data.xy.XYDataset;
 import org.jfree.chart.ChartFactory;
@@ -67,15 +69,41 @@ import org.jfree.chart.renderer.category.CategoryItemRenderer ;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.chart.plot.CategoryPlot;
 
+//Report
+import org.jfree.report.elementfactory.ShapeFieldElementFactory;
+import org.jfree.report.JFreeReport;
+import org.jfree.report.JFreeReportBoot;
+import org.jfree.report.modules.parser.base.ReportGenerator;
+//import org.jfree.report.demo.helper.ReportDefinitionException;
+import org.jfree.ui.RefineryUtilities;
+import org.jfree.util.ObjectUtilities;
+import org.jfree.report.modules.gui.base.PreviewDialog;
+import org.jfree.ui.RefineryUtilities;
+import org.jfree.util.ObjectUtilities;
+import org.jfree.report.ReportProcessingException;
+import org.jfree.util.Log;
+import org.jfree.report.elementfactory.TextFieldElementFactory;
+import org.jfree.ui.FloatDimension;
+import org.jfree.report.ElementAlignment;
+import org.jfree.report.function.PageFunction;
+import org.jfree.report.elementfactory.LabelElementFactory;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import javax.swing.table.AbstractTableModel;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Properties;
+
 
 public class GoenSheet extends JFrame implements ActionListener
 {
 	
-	protected JFileChooser filechooser;
-	public String sfile;
-	
-  	public Document my_doc;
- 	protected JFileChooser my_chooser;
+  	public JFileChooser my_chooser;
  	public File my_FChoosen;
 	public String my_OpenFile ="";
 	public static final ImageIcon ICON_COMPUTER =new ImageIcon(ClassLoader.getSystemResource("folder.png"));
@@ -120,7 +148,7 @@ public class GoenSheet extends JFrame implements ActionListener
     public JPopupMenu popup;
     public JMenu chartPop;
     public JMenuItem menuPop,cutPop,clearPop, copyPop,pastePop, selectallPop, insertPop,deletePop, rowheightPop,
-    selectrowPop,selectcolPop,selectcellPop, xychartPop,barchartPop;
+    selectrowPop,selectcolPop,addcolPop,remcolPop,inscolPop,renameColPop,selectcellPop, xychartPop,barchartPop,colwidthPop,previewPop;
     private JTable myTable;
     private SheetAdapter sheetCell;
     private JTable lineTable;
@@ -144,9 +172,28 @@ public class GoenSheet extends JFrame implements ActionListener
 	private XYLineAndShapeRenderer renderer;	
 	private XYPlot plot;
     private NumberAxis xAxis ,yAxis;
-    
+	
     private boolean xychartselect=false;
-
+    
+    //debase
+    private static Properties goenDBprops;
+	private static String sfile = "GoenDB.properties";
+	private Connection con;
+	private Statement stmt;
+	private DatabaseMetaData md;
+	private ResultSet rs; 
+	private ResultSet mrs;
+	private int rowData = 0;
+	private int numTabel = 0;
+	private int numRecord = 1;
+	private static String myURL = "";
+	private static String myDatabase = "";
+	final JTextField driverTextfield = new JTextField(20);
+	final JTextField urlTextfield = new JTextField(20);
+	final JTextField databaseTextfield = new JTextField(20);
+	final JTextField useridTextfield = new JTextField(20);
+	final JTextField passwdTextfield = new JTextField(20);
+	private JTextArea jtextArea;
  	public GoenSheet()
 	{  
 	super("GoenSheet ");
@@ -197,10 +244,26 @@ public class GoenSheet extends JFrame implements ActionListener
 	tabModel=new DefaultTableModel();
 	
 	tabModel.setDataVector(rows,columns);
-
+	
       	myTable = new JTable(tabModel);
       	
-
+      	myTable.addKeyListener(new KeyAdapter() {
+	public void keyPressed(KeyEvent e) 
+	{
+	if(!myTable.isEditing() && !e.isActionKey() &&!e.isControlDown() && !e.isAltDown() &&e.getKeyCode()!=KeyEvent.VK_SHIFT)
+	 {
+	 	int rowIndexStart = myTable.getSelectedRow();
+	 	int colIndexStart = myTable.getSelectedColumn();
+	 	if(rowIndexStart==-1 || colIndexStart==-1)return;
+	 	myTable.editCellAt(rowIndexStart,colIndexStart);
+	 	Component c = myTable.getEditorComponent();
+	 	if(c instanceof JTextComponent)
+	 	((JTextComponent)c).setText("");
+	 	}
+	 	}
+	 	});
+	 	
+		
 		lineTable = new RowLineNumberTable( myTable );
 		sheetCell = new SheetAdapter(myTable);
 		
@@ -214,10 +277,11 @@ public class GoenSheet extends JFrame implements ActionListener
 
 		myTable.setDragEnabled(false) ;
 		lineTable.setDragEnabled(false) ;
-		
-
+ 
 	 //	myTable.setShowVerticalLines(true) ;
-     //myTable.setShowGrid(boolean showGrid) 
+       //myTable.setShowGrid(boolean showGrid) 
+       myTable.setShowGrid(true) ;
+       myTable.setGridColor(Color.blue) ;
      //  myTable.setGridColor(Color gridColor) 
      
  		ps = new JScrollPane(myTable);
@@ -238,8 +302,14 @@ public class GoenSheet extends JFrame implements ActionListener
 		 popup.add(clearPop = new JMenuItem("Clear"));
 		 popup.addSeparator();
 
-		 popup.add(insertPop = new JMenuItem("Insert"));
-		 popup.add(deletePop = new JMenuItem("Delete"));
+		 popup.add(insertPop = new JMenuItem("Insert Row"));
+		 popup.add(deletePop = new JMenuItem("Delete Row"));
+		 popup.add(renameColPop = new JMenuItem("Rename Column"));
+		 popup.add(addcolPop = new JMenuItem("Add Column"));
+		 popup.add(inscolPop = new JMenuItem("Insert Column"));		 
+		 popup.add(remcolPop = new JMenuItem("Remove Column"));
+		 
+		 		 
 		 popup.addSeparator();
 
 		 popup.add(selectallPop = new JMenuItem("Select All"));
@@ -247,12 +317,9 @@ public class GoenSheet extends JFrame implements ActionListener
 		 popup.add(selectcolPop = new JMenuItem("Select Column"));
 		 popup.add(selectcellPop = new JMenuItem("Select Cell"));
 		 
-		 popup.add(chartPop = new JMenu("Chart"));
-		 chartPop.add(xychartPop = new JMenuItem("XY Chart"));
-		 chartPop.add(barchartPop = new JMenuItem("Bar Chart"));
 		 
-		 xychartPop.addActionListener(new MyMenuListener());
-		 barchartPop.addActionListener(new MyMenuListener());
+		 inscolPop.addActionListener(new MyMenuListener());
+		 
 		 
 		 
 		 selectrowPop.addActionListener(new MyMenuListener());
@@ -261,7 +328,18 @@ public class GoenSheet extends JFrame implements ActionListener
 		 popup.addSeparator();
 
 		 popup.add(rowheightPop = new JMenuItem("Row Height"));
-		 	 
+		 popup.add(colwidthPop = new JMenuItem("Column Width"));
+		 popup.addSeparator();
+		 popup.add(chartPop = new JMenu("Chart"));
+		 chartPop.add(xychartPop = new JMenuItem("XY Chart"));
+		 chartPop.add(barchartPop = new JMenuItem("Bar Chart"));		 
+		 popup.add(previewPop = new JMenuItem("Print Preview"));
+		 xychartPop.addActionListener(new MyMenuListener());
+		 barchartPop.addActionListener(new MyMenuListener());
+		 previewPop.addActionListener(new MyMenuListener());
+		 colwidthPop.addActionListener(new MyMenuListener());
+		
+		 renameColPop.addActionListener(new MyMenuListener());
 		 cutPop.addActionListener(new MyMenuListener());
 		 clearPop.addActionListener(new MyMenuListener());
 		 copyPop.addActionListener(new MyMenuListener());
@@ -269,7 +347,9 @@ public class GoenSheet extends JFrame implements ActionListener
 		 selectallPop.addActionListener(new MyMenuListener());
  		 rowheightPop.addActionListener(new MyMenuListener());
  		 insertPop.addActionListener(new MyMenuListener());
+ 		 addcolPop.addActionListener(new MyMenuListener());
  		 deletePop.addActionListener(new MyMenuListener());
+ 		 remcolPop.addActionListener(new MyMenuListener());
  		 myTable.setComponentPopupMenu(popup);
 
      top = new DefaultMutableTreeNode(new IconData(ICON_COMPUTER, null, "My Project  "));
@@ -388,13 +468,14 @@ public class GoenSheet extends JFrame implements ActionListener
 				{
                      int rowcell;
                      int colcell;
-                     String strVal;
+                     String strVal="";
                     	if (e.getClickCount() == 1)
 					   {
 					 rowcell = myTable.getSelectedRow() + 1;
                      colcell = myTable.getSelectedColumn() + 1;
   		                //Already handle by  TreeSelectionListener
- 						//none 					
+ 						//none 			
+ 					 		
  					strVal = (String)myTable.getValueAt(rowcell-1, colcell-1);
  					cellInfo.setText("Row:"+rowcell+" , Col:"+colcell+" , Value= "+strVal);
 
@@ -471,10 +552,10 @@ public class GoenSheet extends JFrame implements ActionListener
 		final JMenuBar menuBar = new JMenuBar();
 		
 		JMenu mFile = new JMenu("File");
-		mFile.setMnemonic('f');
+		mFile.setMnemonic('F');
 
 		JMenuItem item = new JMenuItem("New");
-		item.setMnemonic('n');
+		item.setMnemonic('N');
 		ActionListener lst = new ActionListener() 
 		{ 
 			public void actionPerformed(ActionEvent e)
@@ -487,7 +568,7 @@ public class GoenSheet extends JFrame implements ActionListener
 		mFile.add(item);
 
 		item = new JMenuItem("Open...");
-		item.setMnemonic('o');
+		item.setMnemonic('O');
 		lst = new ActionListener() 
 		{ 
 			public void actionPerformed(ActionEvent e)
@@ -554,6 +635,29 @@ public class GoenSheet extends JFrame implements ActionListener
 		item.addActionListener(lst);
 		
 		mFile.add(item);
+		
+		item = new JMenuItem("Print Preview");
+		item.setMnemonic('v');
+		lst = new ActionListener() 
+		{ 
+			public void actionPerformed(ActionEvent e)
+			{
+                
+                     Thread runPreview = new Thread() {
+                                  public void run() {
+                                  	
+            	try{
+					previewData();
+					}catch(Exception ex){warnme("error..."+ex);}
+ 			 	  
+                                 }
+                                };
+                                runPreview.start();
+			}
+		};
+		item.addActionListener(lst);
+		
+		mFile.add(item);
 
 		mFile.addSeparator();
 		
@@ -587,21 +691,21 @@ public class GoenSheet extends JFrame implements ActionListener
 		item.addActionListener(lst);
 		
 		mFile.add(item);
-		item = new JMenuItem("About GoenSheet 1.0");
-		item.setMnemonic('A');
+		item = new JMenuItem("About GoenSheet 1.0.3");
+		item.setMnemonic('G');
 		 lst = new ActionListener() 
 		{ 
 			public void actionPerformed(ActionEvent e)
 			{
-				JFrame frame = new JFrame("About GoenSheet 1.0");
+				JFrame frame = new JFrame("About GoenSheet 1.0.3");
 				ImageIcon icon = new ImageIcon(ClassLoader.getSystemResource("logo.png"));
 		        JLabel label1 = new JLabel(icon);
 		
 		        frame.add("North",label1);
 		
-		        JLabel label2 = new JLabel("<html><li>GoenSheet 1.0™ "
-		        + "</li><li><p>Ver# 1.0 </li>"
-		        + "<li><p>Develop by: Goen-Ghin</li><li><p>JavaGeo Technology System</li><li>"
+		        JLabel label2 = new JLabel("<html><li>GoenSheet - A Simple SpreadSheet™ "
+		        + "</li><li><p>Ver# 1.0.3 </li>"
+		        + "<li><p>Develop by: JavaGeo.com</li><li>"
 		        + "<p>Copyright<font size=\"2\">©</font> August 2008 @Pekanbaru Riau Indonesia</li></html>");
 		
 		label2.setFont(new Font("Tahoma", Font.PLAIN, 11));		
@@ -713,7 +817,7 @@ public class GoenSheet extends JFrame implements ActionListener
  	    
 	    myPanel.add("Center", myTextFieldPanel);
 	    
-	    myButtondPanel.setLayout(new GridLayout(7, 1, 5, 5));
+	    myButtondPanel.setLayout(new GridLayout(6, 1, 5, 5));
 	    
 	    fontColorButton = new JButton("..");
 	    fontColorButton.addActionListener(this);
@@ -793,7 +897,8 @@ public class GoenSheet extends JFrame implements ActionListener
 				    
 			   }catch (Exception ex){};
 				
-				j.show();
+				j.setVisible(true);
+				//show();
                   }     
          }); 
         
@@ -934,7 +1039,7 @@ public void fontSetOpen(String configFile)
 public void runChartDialog()
 {
 	try {
-					chartDataDialog cDataDialog = new chartDataDialog(GoenSheet.this);
+					ChartDataDialog cDataDialog = new ChartDataDialog(GoenSheet.this);
 				    Dimension d1 = cDataDialog.getSize();
 				    Dimension d2 = GoenSheet.this.getSize();
 				    int xv = Math.max((d2.width-d1.width)/2, 0);
@@ -944,16 +1049,123 @@ public void runChartDialog()
 				    cDataDialog.setVisible(true);														
 					}
 					catch (Exception e) {
-					System.out.println("Error due to " + e.getClass() + e.getMessage());
-						
+						warnme("Error due to " + e.getMessage());										
 						}  
-	}		
+	}	
+
+public void connectDB(String queryText)
+{
+ 	 //remove all rows first
+ 	 removeTable();
+ 	 //add new headers
+ 	 addColumn();
+ 	 
+ 	 //container
+ 	 Vector row = new Vector(); 	 
+     String columnName =" ";
+    try {
+		con = getConnection();      
+		stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE ,
+		                         ResultSet.CONCUR_READ_ONLY);
+		
+		rs = stmt.executeQuery(queryText);
+		ResultSetMetaData rsmd = rs.getMetaData();
+		
+		String[] record = new String[rsmd.getColumnCount()];
+		
+    for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+          columnName = rsmd.getColumnName(i);
+         changeName(myTable,i-1,columnName);
+          }
+           
+		while (rs.next()) {    
+		row = new Vector(); 
+		for (int i=1; i <= rsmd.getColumnCount(); i++) {
+		columnName = rs.getString(i);
+		row.addElement(columnName); 
+		}
+		tabModel.addRow(row);  
+		}
+		
+     	myTable.addNotify();
+        
+    } catch (Exception e) {
+      warnme("error database "+e);
+    }
+	
+	}
+
+public static Connection getConnection() throws SQLException, IOException {
+    goenDBprops = new Properties();
+    
+    FileInputStream in = new FileInputStream(sfile);
+    goenDBprops.load(in);
+
+    String drivers = goenDBprops.getProperty("jdbc.drivers");
+    if (drivers != null)
+      System.setProperty("jdbc.drivers", drivers);
+      
+     myDatabase = goenDBprops.getProperty("jdbc.database");
+    myURL = goenDBprops.getProperty("jdbc.url");
+    String username = goenDBprops.getProperty("jdbc.username");
+    String password = goenDBprops.getProperty("jdbc.password");
+
+    return DriverManager.getConnection(myURL+myDatabase, username, password);
+  }
+
+public void insertColumn(JTable table,int col_Index) {
+	int columns = table.getColumnCount();
+	if (columns > 0) {
+        myTable.moveColumn(table.getColumnCount()-1, col_Index);
+        myTable.addNotify();
+    }
+   
+  }
+  
+  	
 public void addColumns(String[] colName)//Table Columns
 	{
 	for(int i=0;i<colName.length;i++)
 	columns.addElement((String) colName[i]);
 	}
+
+public void addColumn() {
+		String header = "";
+		tabModel.addColumn(header);
+		myTable.addNotify();
+	}
 	
+public void changeName(JTable table, int col_index, String col_name){
+    myTable.getColumnModel().getColumn(col_index).setHeaderValue(col_name);
+  }
+		
+public void removeLastColumn() {
+		 int columnsize = myTable.getColumnCount();
+ 		
+		int columns = myTable.getSelectedColumns()[0];
+
+		if (columnsize > 0) {
+			if (!myTable.getAutoCreateColumnsFromModel()) {
+				int view = myTable.convertColumnIndexToView(columnsize - 1);
+ 				if (view > 0) {
+ 					TableColumn column = myTable.getColumnModel().getColumn(view);
+					myTable.getColumnModel().removeColumn(column);
+				} else {
+					warnme("view is < 0");
+				}
+			}
+ 			tabModel.setColumnCount(columnsize - 1);
+		}
+	}
+	public void setColumnWidth(int columnIndex, int width) {
+		myTable.getColumnModel().getColumn(columnIndex).setPreferredWidth(width);
+		 
+	}
+	public void setAllColumnWidth(int width) {
+		for (int i = 0; i < myTable.getColumnCount(); i++) {
+			setColumnWidth(i, width);
+		}
+	}
 public void addRow(int newSize) //Add Row
 	{
 	Vector r=new Vector();
@@ -1037,8 +1249,8 @@ void setSetting()
 					 frame.setIconImage(image);
  			         
 			 java.awt.Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();      
-    		frame.setSize(new java.awt.Dimension(420, 310));
-    		frame.setLocation((screenSize.width-420)/2,(screenSize.height-310)/2);
+    		frame.setSize(new java.awt.Dimension(370, 270));
+    		frame.setLocation((screenSize.width-370)/2,(screenSize.height-270)/2);
     		frame.setVisible(true);
      	   	
     	   	    
@@ -1048,12 +1260,161 @@ void setSetting()
 			};
 			optionrun.start();
   	
-  	}		
+  	}
+  	
+  	//Connection setting
+  public JPanel JPanelSetting( final JFrame j)
+		{  
+		final JPanel MyPanel = new JPanel();  
+		MyPanel.setLayout(new BorderLayout());
+		MyPanel.setBorder(new TitledBorder(new EtchedBorder(), 
+		  "Option"));
+		JFileChooser filechooser;
+		
+		JPanel MyLabelPanel = new JPanel();
+		
+		JLabel driverLabel = new JLabel(" Driver : ");
+		JLabel urlLabel = new JLabel(" URL : ");
+		JLabel databaseLabel = new JLabel(" Database : ");
+		JLabel useridLabel = new JLabel(" User Name: ");
+		JLabel passwdLabel = new JLabel(" Password: ");
+		
+		JPanel MyTextFieldPanel = new JPanel();
+	
+	    MyLabelPanel.setLayout(new GridLayout(5, 1, 5, 5));
+	    MyLabelPanel.add(driverLabel);
+	    MyLabelPanel.add(urlLabel);
+	    MyLabelPanel.add(databaseLabel);
+	    
+	    MyLabelPanel.add(useridLabel);
+	    MyLabelPanel.add(passwdLabel);
+	    
+	    MyPanel.add("West", MyLabelPanel);
+	    
+	    MyTextFieldPanel.setLayout(new GridLayout(5, 1, 5, 5));
+	    MyTextFieldPanel.add(driverTextfield);
+	    MyTextFieldPanel.add(urlTextfield);
+	    MyTextFieldPanel.add(databaseTextfield);
+	    MyTextFieldPanel.add(useridTextfield);
+	    MyTextFieldPanel.add(passwdTextfield);
+	    
+	    MyPanel.add("East", MyTextFieldPanel);
+	    
+	    JPanel ButtonPanel = new JPanel();
+	    ButtonPanel.setLayout(new GridLayout(1, 4, 5, 5));
+	    
+	    JButton ApplyButton = new JButton("Apply");
+	    ApplyButton.addActionListener(this);
+	    
+	    JButton DefaultButton= new JButton("Default");
+		DefaultButton.addActionListener(this);
+		    
+		JButton ResetButton= new JButton("Reset");
+		ResetButton.addActionListener(this);
+	    
+	    JButton CloseButton = new JButton("Close");
+	    CloseButton.addActionListener(this);
+	    
+ 	    ButtonPanel.add(ApplyButton);
+	    ButtonPanel.add(DefaultButton);
+	    ButtonPanel.add(ResetButton);
+	    ButtonPanel.add(CloseButton);
+	    
+	    jtextArea = new JTextArea();
+	    jtextArea.setText("select * from Program");
+	    
+	    JPanel QueryPanel = new JPanel();
+	    QueryPanel.setBorder(new TitledBorder(new EtchedBorder(), "Query")); 
+	    QueryPanel.setLayout(new BorderLayout());
+	    JScrollPane scrollpane = new JScrollPane(jtextArea);
+	    QueryPanel.add("Center",scrollpane);
+	    QueryPanel.add("South",ButtonPanel);
+	    
+	    MyPanel.add("South", QueryPanel);
+	    
+	    ApplyButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            
+            saveSetting();
+            
+            connectDB(jtextArea.getText());
+      	
+              }
+        }); 
+        
+        DefaultButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+             
+            loadSetting();
+            
+            }
+        });
+        
+        ResetButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+         
+            driverTextfield.setText("");
+		    urlTextfield.setText("");
+		    databaseTextfield.setText("");
+		    useridTextfield.setText("");
+		    passwdTextfield.setText("");          	
+         
+            }
+        });
+        
+	    
+	    CloseButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	
+            	 j.dispose();
+            
+                       }
+        }); 
+		
+		
+	 loadSetting();
+		
+		return MyPanel;
+		
+	}		
    public void warnme(String message) {
     JOptionPane.showMessageDialog(new JFrame(), 
       message, "Warning", JOptionPane.INFORMATION_MESSAGE);
   }
-  
+  public void loadSetting()
+	{
+	try {
+			goenDBprops = new Properties();
+		    FileInputStream in = new FileInputStream(sfile);
+		    goenDBprops.load(in);		    
+		    driverTextfield.setText(goenDBprops.getProperty("jdbc.drivers"));
+		    urlTextfield.setText(goenDBprops.getProperty("jdbc.url"));
+		    databaseTextfield.setText(goenDBprops.getProperty("jdbc.database"));
+		    useridTextfield.setText(goenDBprops.getProperty("jdbc.username"));
+		    passwdTextfield.setText(goenDBprops.getProperty("jdbc.password"));
+		    }catch (Exception ex) {warnme(""+ex.getMessage());}
+      }
+      
+  public void saveSetting()
+	{
+		try
+				    {			  
+				  
+			       FileOutputStream outfl = new FileOutputStream(sfile);
+			       goenDBprops.setProperty("jdbc.drivers",driverTextfield.getText());
+		           goenDBprops.setProperty("jdbc.url",urlTextfield.getText());
+		           goenDBprops.setProperty("jdbc.database",databaseTextfield.getText());
+		           goenDBprops.setProperty("jdbc.username",useridTextfield.getText());
+		           goenDBprops.setProperty("jdbc.password",passwdTextfield.getText());
+			       goenDBprops.save(outfl,"GoenDB Ver 1.0 Pekanbaru 2007 - Properties File ");
+			       outfl.close();
+				    } 
+				    catch (IOException ex) 
+				    {
+					warnme(""+ex.getMessage());
+				    }	 
+	    
+		}
  
 	protected void saveSheetFile(JTable mytabel)
 	{
@@ -1083,12 +1444,16 @@ void setSetting()
              bwriter.write("\n");
           }
          }
-            catch(Exception ex){ex.printStackTrace();}
+            catch(Exception ex){
+            	//ex.printStackTrace();
+            	warnme("Please Check Data");
+            	 }
  				bwriter.close();
 			}
 			catch (IOException ioe)
 			{
-				ioe.printStackTrace();
+				//ioe.printStackTrace();
+					warnme("Please Check File");
 			}
 		}
 
@@ -1144,7 +1509,7 @@ protected void removeTable()
        
        
        int sizeCol = myTable.getRowCount()  ;
-       System.out.println("CX="+xcolcell+" CY="+ycolcell+"S="+sizeCol);
+       //System.out.println("CX="+xcolcell+" CY="+ycolcell+"S="+sizeCol);
 
           try
           {
@@ -1161,14 +1526,14 @@ protected void removeTable()
          }
          catch(Exception ex){
          //ex.printStackTrace()
-         warnme("Please Check Your X Y Column Data");
+         warnme("Please Check/Select X Range Column Data");
          ;}
                    
         
         dataset = new XYSeriesCollection();
 	    dataset.addSeries(series1);	
         
-        System.out.println("data"); 
+        //System.out.println("data"); 
         
  		  }catch (Exception ex) {}			 
   		}
@@ -1184,7 +1549,7 @@ protected void removeTable()
        
        
        int sizeCol = myTable.getSelectedRowCount()  ;
-       System.out.println("CX="+xcolcell+" CY="+ycolcell+"S="+sizeCol);
+       //System.out.println("CX="+xcolcell+" CY="+ycolcell+"S="+sizeCol);
 
           try
           {
@@ -1194,7 +1559,7 @@ protected void removeTable()
                       double y = (double)Double.valueOf(myTable.getValueAt(j, ycolcell).toString()); 
                    
                          series1.add(x,y);
-                     System.out.println("X="+x+"Y="+y+"Size="+sizeCol);
+                     //System.out.println("X="+x+"Y="+y+"Size="+sizeCol);
                 }
          }
          catch(Exception ex){
@@ -1206,7 +1571,7 @@ protected void removeTable()
         dataset = new XYSeriesCollection();
 	    dataset.addSeries(series1);	
         
-        System.out.println("data"); 
+        //System.out.println("data"); 
         
  		  }catch (Exception ex) {}			 
   		}
@@ -1302,7 +1667,115 @@ protected void removeTable()
         return chart;
         
     }
+    
+    public void createImageFile()
+    {
+    	try {
+            ChartUtilities.saveChartAsPNG(new File("chart.png"), chart,100, 80);
+        } catch(IOException e) {
+            warnme("Failed to render chart as png: "+ e.getMessage());
+        }
+    	}
+    //Report
+    protected void executeReport () //throws ReportDefinitionException
+  {
+  	try
+    {
+    ReportGenerator generator =ReportGenerator.createInstance();
      
+    //= ReportGenerator.getInstance ();    	
+  	//ReportGenerator generator = ReportGenerator.getInstance();
+  	//warnme("ok");
+  	  
+  //final URL in = ObjectUtilities.getResourceRelative("goensheet.xml", GoenSheet.class);
+
+	  java.io.File in = new java.io.File("goensheet.xml");
+    //  final URL in = file.toURL();
+      if (in == null)
+      {
+      	warnme("test"+in);
+        return;
+      }
+    
+      JFreeReport report = generator.parseReport(in);
+            
+    //JFreeReport report = new JFreeReport();
+     report.setName("  Report of "+sourceDir);
+  //  report.setPageHeader("");
+    
+    report.setData(tabModel);
+    
+    for (int d=1;d<tabModel.getColumnCount();++d)
+    {
+     TextFieldElementFactory factory = new TextFieldElementFactory();
+    factory.setName(tabModel.getColumnName(d-1));
+    factory.setAbsolutePosition(new Point2D.Float(0+d*50, 0));
+    factory.setMinimumSize(new FloatDimension(140*d, 12));
+    factory.setColor(Color.black);
+    factory.setHorizontalAlignment(ElementAlignment.LEFT);
+    factory.setVerticalAlignment(ElementAlignment.MIDDLE);
+    factory.setFieldname(tabModel.getColumnName(d-1));    
+    report.getItemBand().addElement(factory.createElement());
+    
+    /* final ShapeFieldElementFactory shfactory = new ShapeFieldElementFactory();
+    shfactory.setName(tabModel.getColumnName(d-1));
+    shfactory.setAbsolutePosition(new Point2D.Double(0+d*50, 0));
+    shfactory.setMinimumSize(new FloatDimension(140*d, 12));
+    shfactory.setColor(Color.black);
+    //shfactory.setKeepAspectRatio(true);
+    shfactory.setFieldname(tabModel.getColumnName(d-1));
+    shfactory.setStroke(new BasicStroke(1));
+    shfactory.setShouldDraw(true);
+    //shfactory.setShouldFill(true);
+    //shfactory.setScale(true);
+    report.getItemBand().addElement(shfactory.createElement());
+   shfactory.createShapeElement(tabModel.getColumnName(d-1),
+                                                 new Point2D.Float(0+d*50, 0),
+                                                 Color.black,
+                                                 new BasicStroke(1),
+                                                 tabModel.getColumnName(d-1),
+                                                 true,
+                                                 true,
+                                                 true,
+                                                 true);
+    */
+    }
+    
+   
+      final PreviewDialog preview = new PreviewDialog(report, this, true);
+      preview.getBase().setToolbarFloatable(true);
+       preview.pack();
+      preview.setVisible(true);
+    }
+    catch ( Exception e)
+  
+    {
+    	warnme("Failed to generate report "+e);
+      Log.error("Failed to generate report ", e);
+    }
+  }
+  public void previewData() 
+  
+  { 
+     //   ObjectUtilities.getResourceRelative("goensheet.xml", GoenSheet.class);
+
+  JFreeReportBoot.getInstance().start();
+
+  	try {
+   
+    executeReport();
+  
+      }catch ( Exception ed) {warnme("error"+ed);}
+  	}
+  
+     public void addComponent (final Component component)
+  {
+    if (component == null)
+    {
+      throw new NullPointerException("Component must not be null.");
+    }
+    rows.add(component);
+  }
 
  		public static void main(String argv[]) 
 	{
@@ -1386,6 +1859,27 @@ class MyTextToolbar extends JToolBar {
              }); 
              
             openButton.setToolTipText("Open");
+            
+            JButton dataButton = new JButton(new ImageIcon(ClassLoader.getSystemResource("filter.png")));
+             dataButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	
+            		JFrame frame = new JFrame("Database Connection");
+				
+			         frame.setContentPane(JPanelSetting(frame)) ;
+			         Toolkit kit = Toolkit.getDefaultToolkit();
+					 Image image = kit.getImage(ClassLoader.getSystemResource("logo.png"));
+					 frame.setIconImage(image);
+			java.awt.Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+    		frame.setSize(new java.awt.Dimension(360, 240));
+    		frame.setLocation((screenSize.width-360)/2,(screenSize.height-240)/2);
+    		frame.setVisible(true);   
+    		
+                        }
+             }); 
+             
+            dataButton.setToolTipText("Load Database");
+            
             
             JButton saveButton = new JButton(new ImageIcon(ClassLoader.getSystemResource("save.png")));
              saveButton.addActionListener(new ActionListener() {
@@ -1475,11 +1969,25 @@ class MyTextToolbar extends JToolBar {
              }); 
              
            printButton.setToolTipText("Print");
+           
+           JButton previeButton = new JButton(new ImageIcon(ClassLoader.getSystemResource("kview.png")));
+             previeButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	try{
+					previewData();
+					}catch(Exception ex){warnme("error..."+ex);}
+ 			 	  
+                        }
+             }); 
+             
+           previeButton.setToolTipText("Print Preview");
 
             setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
             
             add(newButton);
             add(openButton);
+            add(dataButton);
+            
             add(saveButton);
             add(cutButton);
             add(copyButton);
@@ -1489,6 +1997,7 @@ class MyTextToolbar extends JToolBar {
             add(underLineButton);
             add(tagnormButton);
             add(printButton);
+            add(previeButton);
 	}
 }
 //toolbar
@@ -1500,6 +2009,8 @@ class MyMenuListener implements ActionListener {
  				 if (e.getActionCommand() == "Clear") 
 				{
 					sheetCell.cutCell();
+				
+					
    				}
    				if (e.getActionCommand() == "Cut") 
 				{   sheetCell.copyCell();
@@ -1508,27 +2019,48 @@ class MyMenuListener implements ActionListener {
 				 if (e.getActionCommand() == "Copy") 
 				{
 					sheetCell.copyCell();
-  				}
+   				}
 				if (e.getActionCommand() == "Paste") 
 				{
 					sheetCell.pasteCell();
   				}
-  				if (e.getActionCommand() == "Insert") 
+  				if (e.getActionCommand() == "Insert Row") 
 				{
 					insertRows(myTable.getSelectedRows(),myTable.getSelectedRow());
   				}
-  				if (e.getActionCommand() == "Delete") 
+  				if (e.getActionCommand() == "Delete Row") 
 				{
  					 for(int i=0; i< myTable.getSelectedRowCount();i++)
 					 deleteRow(myTable.getSelectedRow());        
 					 //I leave for you to delete a column
   					 
 			    }
+			     if (e.getActionCommand() == "Add Column") 
+				{
+					 
+					addColumn();
+  				}
+  				if (e.getActionCommand() == "Insert Column") 
+				{
+					 
+					 int col = myTable.getSelectedColumns()[0];
+					 insertColumn(myTable,col);
+					 					 
+  				}
+  				
+			    if (e.getActionCommand() == "Remove Column") 
+				{
+				
+					removeLastColumn();
+			    //	int col = myTable.getSelectedColumns()[0];
+				//	myTable.removeColumnSelectionInterval(col, col+1) ;
+  				}
+			    
+			    
 				if (e.getActionCommand() == "Select All") 
 				{   
 					myTable.selectAll();
-					
-					
+										
   				}
   				if (e.getActionCommand() == "Select Row") 
 				{   
@@ -1557,6 +2089,7 @@ class MyMenuListener implements ActionListener {
                     chartPanel = new ChartPanel(chart);
                     splitMe2.add(chartPanel);
                     splitMe2.validate();
+                    createImageFile();
                    	xychartselect = false;
                    	}
                    	
@@ -1568,6 +2101,7 @@ class MyMenuListener implements ActionListener {
                    chartPanel.setVisible(true);
                    splitMe2.resetToPreferredSizes() ;
                    getContentPane().validate();
+                   createImageFile();
                    //
  
    				}
@@ -1599,15 +2133,57 @@ class MyMenuListener implements ActionListener {
 	                    lineTable.setRowHeight(rowH);
 	              }
   				}
+  				
+  				if (e.getActionCommand() == "Column Width") 
+				{
+					try {
+					String rowHeight=JOptionPane.showInputDialog(null,"Column Width","GoenSheet",JOptionPane.INFORMATION_MESSAGE);
+					
+					int rowH = Integer.parseInt(rowHeight);
+ 	                    
+	               if(!rowHeight.trim().equals("") || rowH > 0 )
+	              {
+	                    //int rowH = Integer.parseInt(rowHeight);
+	                    setAllColumnWidth(rowH);
+	                    myTable.sizeColumnsToFit(rowH) ;
+	                     
+	              }
+	              
+  				}
+  				catch(Exception ex){}
+  			}
+  			
+  			if (e.getActionCommand() == "Rename Column") 
+				{
+					String renColumn=JOptionPane.showInputDialog(null,"Enter New Column Name","GoenSheet",JOptionPane.INFORMATION_MESSAGE);
+	              if(!renColumn.trim().equals("") && myTable.getRowCount()>0)
+	              {
+	                    int col = myTable.getSelectedColumns()[0];
+	                    changeName(myTable,col,renColumn);
+	                    //System.out.println("ren"+renColumn+" no"+col);
+	                    myTable.addNotify();
+	              }
+  				}
+  				
+  			
+  			if (e.getActionCommand() == "Print Preview") 
+				{
+					//warnme("run...");
+					try{
+					previewData();
+					}catch(Exception ex){warnme("error..."+ex);}
+  				}
+  			
+  			
    			}
 		}
 
 //extract
-class chartDataDialog extends JDialog 
+class ChartDataDialog extends JDialog 
 {
   protected GoenSheet fd_owner;
   
-  public chartDataDialog(GoenSheet owner) 
+  public ChartDataDialog(GoenSheet owner) 
   {
     super(owner, "Create Chart", false);
     fd_owner = owner;
@@ -1896,8 +2472,8 @@ class ReadFontConfig {
 		}
 		fr.close();
 		}catch (IOException e) {
+			warnme("Error while reading file, due to " + e.getMessage());
 			
-			System.out.println("Error while reading file, due to " + e.getMessage());
 			System.exit(1);
 		}
  	}
@@ -1909,7 +2485,7 @@ class ReadFontConfig {
 	public String getWorkingDir(){ return s[5].substring(11);}
  	
 }
- 
+	
 //Row line number
 public class RowLineNumberTable extends JTable
 {
@@ -2025,7 +2601,9 @@ public void pasteCell()
                 }
             }
          }
-         catch(Exception ex){ex.printStackTrace();}
+         catch(Exception ex){ 	warnme("Error");
+         //ex.printStackTrace();
+         }
 	
 	}
 
@@ -2047,7 +2625,9 @@ public void cutCell()
             
             }
          }
-         catch(Exception ex){ex.printStackTrace();}
+         catch(Exception ex){	warnme("Error");
+         	//ex.printStackTrace();
+         	}
 	}
 public void actionPerformed(ActionEvent e)
    {
@@ -2066,7 +2646,7 @@ public void actionPerformed(ActionEvent e)
    }
 }	
 
-//Export to csv file so Excel/Other program can read it
+//Export to csv file so Excell/Others can read it
 class  ExportertoFile {
  public ExportertoFile() {}
  public void exportTable(JTable table, File file) throws IOException {

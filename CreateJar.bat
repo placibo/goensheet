@@ -1,1 +1,1 @@
-jar cvfm GoenSheet.jar C:\javaappl\GoenSheet\MyMANIFEST.MF *.class *.png *.gif
+jar cvfm GoenSheet.jar D:\javaappl\GoenSheet_Chart_Report_DB\MyMANIFEST.MF *.class *.png *.gif
